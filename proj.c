@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 	realpath(argv[1], og_dir);
 
 	// List files
-	listFiles(dirp, files, og_dir);	
+	listFiles(dirp, files, og_dir);
 
 	exit(0);
 }
@@ -43,26 +43,29 @@ int main(int argc, char *argv[])
 // List files in a directory and subdirectories
 void listFiles(DIR *dirp, FILE *files, char og_dir[]) {
 	struct dirent *direntp;
-	struct stat stat_buf;	
+	struct stat stat_buf;
 	char name[256];
 
 	while ((direntp = readdir(dirp)) != NULL) {
 		sprintf(name,"%s/%s", og_dir, direntp->d_name);
-		
+
 		if (lstat(name, &stat_buf)==-1) {
 			perror("lstat ERROR");
 			exit(3);
 		}
 
-		// Write to "files.txt" the files' data
+		// Write to "files.txt" the file's data
 		// Ignore files with name "files.txt"
 		if (S_ISREG(stat_buf.st_mode)) {
 			if (strcmp(direntp->d_name, "files.txt") != 0) {
+				char size[50];
+				sprintf(size, " %d", (int) stat_buf.st_size);
 				fwrite(direntp->d_name, sizeof(char), strlen(direntp->d_name), files);
+				fwrite(size,sizeof(char),strlen(size),files);
 				fwrite("\n", sizeof(char), sizeof(char), files);
 			}
 		}
-		
+
 		// Call listFiles for every directory
 		// Creates a process for each directory
 		// Ignores the parent directory ("..") and itself (".")
@@ -82,7 +85,7 @@ void listFiles(DIR *dirp, FILE *files, char og_dir[]) {
 					listFiles(new_dirp, files, name);
 					break;
 				}
-				
+
 			}
 		}
 	}
