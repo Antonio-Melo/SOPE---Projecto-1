@@ -8,11 +8,24 @@
 #include <unistd.h>
 
 
-int main(int argc, char **argv[]){
+int main(int argc, char **argv){
+	DIR *dirp;
 	struct dirent *direntp;
 	struct stat stat_buf;
 	char name[256];
   char og_dir[256];
+
+	if(argc !=2){
+		fprintf(stderr, "Usage: %s dir_name\n",argv[0]);
+		exit(1);
+	}
+	// Can open directory
+	if ((dirp = opendir( argv[1])) == NULL) {
+		perror(argv[1]);
+		exit(2);
+	}
+
+
 
   // Create files.txt on given directory
 	realpath(argv[1], og_dir);
@@ -22,9 +35,8 @@ int main(int argc, char **argv[]){
   //Reset
 	realpath(argv[1], og_dir);
 
-
-	while ((direntp = readdir(argv[1])) != NULL) {
-		sprintf(name,"%s/%s", og_dir, direntp->d_name);
+	while ((direntp = readdir(dirp)) != NULL) {
+		sprintf(name,"%s/%s", argv[1], direntp->d_name);
 
 		if (lstat(name, &stat_buf)==-1) {
 			perror("lstat ERROR");
@@ -43,7 +55,6 @@ int main(int argc, char **argv[]){
 				fwrite("\n", sizeof(char), sizeof(char), files);
 			}
 		}
-
 		// Call listFiles for every directory
 		// Creates a process for each directory
 		// Ignores the parent directory ("..") and itself (".")
@@ -56,17 +67,23 @@ int main(int argc, char **argv[]){
 			if (strcmp(direntp->d_name, "..") != 0 && strcmp(direntp->d_name, ".") != 0) {
 				if ((new_dirp = opendir(name)) == NULL) {
 					perror(name);
-					exit(2);
+					exit(4);
 				}
 
-				if ((pid = fork()) == 0) {
-					listFiles(new_dirp, files, name);
-					break;
-				}
+				pid = fork();
 
+				if(pid <0){
+					perror("Fork Failed");
+					exit(5);
+				}
+				else if(pid == 0){
+					execl("lsdir","lsdir",new_dirp,NULL);
+					closedir(dirp);
+					exit(6);
+				}
 			}
 		}
 	}
-
-	closedir(argv[1]);
+	closedir(dirp);
+	return 0;
 }

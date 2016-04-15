@@ -33,13 +33,11 @@ int main(int argc, char *argv[])
     exit(3);
   }
   //Child
+	//Calls lsdir to read all the files
   else if(pid == 0){
     execl("lsdir", "lsdir", argv[1], NULL);
     perror(argv[1]);
     exit(4);
   }
-
-	// List files
-	//listFiles(dirp, files, og_dir);
-	exit(0);
+	return 0;
 }
