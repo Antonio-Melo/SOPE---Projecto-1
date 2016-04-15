@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Create files.txt on given directory
-	char og_dir[128];
+	char og_dir[256];
 	realpath(argv[1], og_dir);
 	strcat(og_dir, "/files.txt");
 	FILE *files = fopen(og_dir, "w+");
@@ -37,52 +37,55 @@ int main(int argc, char *argv[])
 	// List files
 	listFiles(dirp, files, og_dir);	
 
-	closedir(dirp);
 	exit(0);
 }
 
-
+// List files in a directory and subdirectories
 void listFiles(DIR *dirp, FILE *files, char og_dir[]) {
 	struct dirent *direntp;
 	struct stat stat_buf;	
-	char name[128];
+	char name[256];
 
 	while ((direntp = readdir(dirp)) != NULL) {
+		sprintf(name,"%s/%s", og_dir, direntp->d_name);
 		
-		//strcpy(name, og_dir);
-		//strcat(name, "/");
-		//strcat(name, direntp->d_name);
-		sprintf(name,"%s/%s", og_dir, direntp->d_name); // <----- NOTAR
-		// alternativa a chdir(); ex: anterior
-		
-		if (lstat(name, &stat_buf)==-1) {// testar com stat() 
+		if (lstat(name, &stat_buf)==-1) {
 			perror("lstat ERROR");
 			exit(3);
 		}
 
-
-		// printf("%10d - ",(int) stat_buf.st_ino);
+		// Write to "files.txt" the files' data
+		// Ignore files with name "files.txt"
 		if (S_ISREG(stat_buf.st_mode)) {
-			//sprintf(name2, "%s", direntp->d_name);
-
-			printf(direntp->d_name);
-			printf("\n");
-			fwrite(direntp->d_name, sizeof(char), strlen(direntp->d_name), files);
-			fwrite("\n", sizeof(char), sizeof(char), files);
+			if (strcmp(direntp->d_name, "files.txt") != 0) {
+				fwrite(direntp->d_name, sizeof(char), strlen(direntp->d_name), files);
+				fwrite("\n", sizeof(char), sizeof(char), files);
+			}
 		}
-			
+		
+		// Call listFiles for every directory
+		// Creates a process for each directory
+		// Ignores the parent directory ("..") and itself (".")
 		else if (S_ISDIR(stat_buf.st_mode)) {
 			pid_t pid;
 			DIR *new_dirp;
-						
-			if ((pid = fork()) == 0) {
+			struct dirent *new_direntp;
+
+
+			if (strcmp(direntp->d_name, "..") != 0 && strcmp(direntp->d_name, ".") != 0) {
 				if ((new_dirp = opendir(name)) == NULL) {
 					perror(name);
 					exit(2);
 				}
 
-				listFiles(new_dirp, files, name);
+				if ((pid = fork()) == 0) {
+					listFiles(new_dirp, files, name);
+					break;
+				}
+				
 			}
 		}
 	}
+
+	closedir(dirp);
 }
