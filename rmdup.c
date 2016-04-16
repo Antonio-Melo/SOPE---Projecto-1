@@ -11,7 +11,6 @@
 int main(int argc, char *argv[])
 {
 	DIR *dirp;
-  pid_t pid;
 
 	// Wrong number of arguments
 	if (argc != 2) {
@@ -25,19 +24,7 @@ int main(int argc, char *argv[])
 		exit(2);
 	}
 
-  //Fork to read files data
-  pid = fork();
+   	execl("lsdir", "lsdir", argv[1], NULL);
 
-  if (pid <0){
-    perror("Fork failed");
-    exit(3);
-  }
-  //Child
-	//Calls lsdir to read all the files
-  else if(pid == 0){
-    execl("lsdir", "lsdir", argv[1], NULL);
-    perror(argv[1]);
-    exit(4);
-  }
 	return 0;
 }
