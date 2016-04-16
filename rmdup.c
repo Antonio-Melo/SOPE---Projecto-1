@@ -14,11 +14,14 @@
 
 
 typedef struct file_info {
-	char name[NAME_LENGTH]; // Name of file
-	char path[NAME_LENGTH]; // Path to file
-	unsigned long time_cg; 	// Time last modified
+	char name[NAME_LENGTH];		// Name of file
+	char path[NAME_LENGTH]; 	// Path to file
+	unsigned long time_cg; 		// Time last modified
 	unsigned long protection; 	// Permissions
 } file_info;
+
+int cmpFileTime (const void* elem1, const void* elem2);
+int cmpFiles (const file_info* elem1, const file_info* elem2);
 
 
 int main(int argc, char *argv[]) {
@@ -64,34 +67,120 @@ int main(int argc, char *argv[]) {
 
 	
 	while (!feof(files_file)) {
-		num_files++;
-
 		// File name
 		file_info *reg = malloc(sizeof(file_info));
 
-		fscanf(files_file, "%s", reg->name);
+		if (fscanf(files_file, "%s", reg->name) == -1) {
+			break;
+		}
 
 		// Path name
-		fscanf(files_file, "%s", reg->path);
+		if (fscanf(files_file, "%s", reg->path) == -1) {
+			break;		
+		}
 
 		// Time last changed
-		fscanf(files_file, "%lu", &(reg->time_cg));	
-
+		if (fscanf(files_file, "%lu", &(reg->time_cg)) == -1) {
+			break;		
+		}
 		// Permissions
-		fscanf(files_file, "%lu", &(reg->protection));
+		if (fscanf(files_file, "%lu", &(reg->protection)) == -1) {
+			break;		
+		}
 
+		num_files++;
 		files_array = realloc (files_array, num_files * sizeof(file_info *));
 		files_array[num_files - 1] = reg;
-	}
-	
-	printf("%i", num_files);
-	int i;
-	for (i = 0; i < num_files; i++) {
-		printf("%s\n", ((file_info*) files_array[i])->name);
-
 	}
 
 	fclose(files_file);
 
+	// Sort the array by the time of last change of the file
+	qsort(files_array, num_files, sizeof(file_info *), cmpFileTime);
+	
+
+	// Create hlinks.txt
+	realpath(argv[1], og_dir);
+	strcat(og_dir, "/hlinks.txt");
+	files_file = fopen(og_dir, "w+");
+
+	// Remove duplicates
+	int i, j;
+	for (i = 0; i < num_files - 1; i++) {
+		if (files_array[i] == NULL) {
+			continue;
+		}
+	
+		for (j = i + 1; j < num_files; j++) {
+			if (files_array[j] == NULL) {
+				continue;
+			}
+
+			if (cmpFiles(files_array[i], files_array[j]) == TRUE) {
+				unlink(files_array[j]->path);
+				link(files_array[i]->path, files_array[j]->path);
+				fprintf(files_file, "%s\n", files_array[j]->path);
+				files_array[j] = NULL;
+			}
+		}
+	}
+	
+
 	return 0;
+}
+
+
+// Compare file's last modification time
+// Return 1 if time1 < time2
+// Return 0 if time1 == time2
+// Return -1 if time1 > time2
+int cmpFileTime (const void* elem1, const void* elem2) {
+	file_info *time1 = *(file_info**) elem1;
+	file_info *time2 = *(file_info**) elem2;
+
+	if (time1->time_cg < time2->time_cg) {
+		return -1;
+	}
+	else if (time1->time_cg > time2->time_cg) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
+// Check if the file elem2 is a duplicate of elem1
+int cmpFiles (const file_info* elem1, const file_info* elem2) {
+	
+	// Compare name
+	if (strcmp(elem1->name, elem2->name) != 0) {
+		return FALSE;
+	}
+
+	// Compare permissions
+	if (elem1->protection != elem2->protection) {
+		return FALSE;
+	}
+
+	// Compare content
+	FILE *file1 = fopen(elem1->path, "r");
+	FILE *file2 = fopen(elem2->path, "r");
+
+	char char1;
+	char char2;
+
+	do {
+		char1 = getc(file1);
+		char2 = getc(file2);
+	} while ((char1 != EOF) && (char2 != EOF) && (char1 == char2));
+
+	fclose(file1);
+	fclose(file2);
+	
+	if (char1 == char2) {
+		return TRUE;
+	}
+	else {
+		return FALSE;
+	}
 }

@@ -47,10 +47,7 @@ int main(int argc, char *argv[]) {
 		// Ignore files with name "files.txt"
 		if (S_ISREG(stat_buf.st_mode)) {
 
-			if (strcmp(direntp->d_name, "files.txt") != 0) {
-			
-				printf("%s\n", path);
-				
+			if (strcmp(direntp->d_name, "files.txt") != 0) {				
 				// Write name
 				fprintf(files_file, "%s\n", direntp->d_name);
 
