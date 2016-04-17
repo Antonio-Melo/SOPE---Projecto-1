@@ -10,11 +10,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include "auxfunc.h"
 
-#define NAME_LENGTH 256
 #define TRUE 1
 #define FALSE 0
+#define NAME_LENGTH 256
 
 typedef struct file_info {
 	char name[NAME_LENGTH];		// Name of file
