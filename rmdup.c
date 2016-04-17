@@ -1,28 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/wait.h>
-
-#define NAME_LENGTH 256
-#define TRUE 1
-#define FALSE 0
-
-
-typedef struct file_info {
-	char name[NAME_LENGTH];		// Name of file
-	char path[NAME_LENGTH]; 	// Path to file
-	unsigned long time_cg; 		// Time last modified
-	unsigned long protection; 	// Permissions
-} file_info;
+#include "rmdup.h"
 
 int cmpFileTime (const void* elem1, const void* elem2);
 int cmpFiles (const file_info* elem1, const file_info* elem2);
-
 
 int main(int argc, char *argv[]) {
 
@@ -34,14 +13,14 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	
+
 
 	// Cant open directory
 	if ((dirp = opendir( argv[1])) == NULL) {
 		perror(argv[1]);
 		exit(2);
 	}
-	
+
 	closedir(dirp);
 
 	// List regular files
@@ -65,7 +44,7 @@ int main(int argc, char *argv[]) {
 	file_info** files_array = malloc(0);
 	int num_files = 0;
 
-	
+
 	while (!feof(files_file)) {
 		// File name
 		file_info *reg = malloc(sizeof(file_info));
@@ -76,16 +55,16 @@ int main(int argc, char *argv[]) {
 
 		// Path name
 		if (fscanf(files_file, "%s", reg->path) == -1) {
-			break;		
+			break;
 		}
 
 		// Time last changed
 		if (fscanf(files_file, "%lu", &(reg->time_cg)) == -1) {
-			break;		
+			break;
 		}
 		// Permissions
 		if (fscanf(files_file, "%lu", &(reg->protection)) == -1) {
-			break;		
+			break;
 		}
 
 		num_files++;
@@ -97,7 +76,7 @@ int main(int argc, char *argv[]) {
 
 	// Sort the array by the time of last change of the file
 	qsort(files_array, num_files, sizeof(file_info *), cmpFileTime);
-	
+
 
 	// Create hlinks.txt
 	realpath(argv[1], og_dir);
@@ -110,7 +89,7 @@ int main(int argc, char *argv[]) {
 		if (files_array[i] == NULL) {
 			continue;
 		}
-	
+
 		for (j = i + 1; j < num_files; j++) {
 			if (files_array[j] == NULL) {
 				continue;
@@ -124,7 +103,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
-	
+
 
 	return 0;
 }
@@ -151,7 +130,7 @@ int cmpFileTime (const void* elem1, const void* elem2) {
 
 // Check if the file elem2 is a duplicate of elem1
 int cmpFiles (const file_info* elem1, const file_info* elem2) {
-	
+
 	// Compare name
 	if (strcmp(elem1->name, elem2->name) != 0) {
 		return FALSE;
@@ -176,7 +155,7 @@ int cmpFiles (const file_info* elem1, const file_info* elem2) {
 
 	fclose(file1);
 	fclose(file2);
-	
+
 	if (char1 == char2) {
 		return TRUE;
 	}
